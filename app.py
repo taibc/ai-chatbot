@@ -1,6 +1,8 @@
 import os
 from pypdf import PdfReader
-import ollama
+from openai import OpenAI
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def load_pdfs(folder_path: str) -> str:
     texts = []
@@ -8,25 +10,23 @@ def load_pdfs(folder_path: str) -> str:
         if file.endswith(".pdf"):
             reader = PdfReader(os.path.join(folder_path, file))
             for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    texts.append(text)
+                if page.extract_text():
+                    texts.append(page.extract_text())
     return "\n".join(texts)
 
 
 def ask_llm(context: str, question: str) -> str:
     prompt = f"""
-Bạn là trợ lý AI. Chỉ trả lời dựa trên nội dung tài liệu.
+Chỉ trả lời dựa trên nội dung tài liệu sau:
 
-TÀI LIỆU:
 {context}
 
-CÂU HỎI:
-{question}
+Câu hỏi: {question}
 """
 
-    res = ollama.chat(
-        model="llama3",
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}]
     )
-    return res["message"]["content"]
+
+    return response.choices[0].message.content
